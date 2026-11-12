@@ -13,7 +13,7 @@ from app.schemas import ArchivoCreate, PiezaCreate
 _BASE_MUSICA = Path.home() / "Documents/Musica"
 
 # Separador de instrumentos en el CSV
-_SEP_INSTRUMENTOS = "; "
+_SEP_INSTRUMENTOS = ";"
 
 
 def _normalizar(texto: str) -> str:
