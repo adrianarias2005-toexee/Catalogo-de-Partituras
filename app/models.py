@@ -19,7 +19,7 @@ class Pieza(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String, nullable=False, index=True)
     # Columna normalizada (sin acentos, minúsculas) para búsqueda eficiente
-    title_normalized: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    title_normalized: Mapped[str] = mapped_column(String, nullable=False, server_default="", index=True)
     composer: Mapped[str | None] = mapped_column(String, nullable=True)
     # Lista de instrumentos codificada como JSON, p.ej. '["Flauta", "Trompeta"]'
     instruments: Mapped[str | None] = mapped_column(String, nullable=True)

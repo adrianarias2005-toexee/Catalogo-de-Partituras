@@ -4,13 +4,14 @@ from sqlalchemy import inspect
 
 from app import crud
 from app.schemas import ArchivoCreate, PiezaCreate, PiezaRead
+from tests.conftest import engine
 
 
 def test_create_tables(db):
     """Las tablas 'piezas' y 'archivos' deben existir tras crear la BD."""
     from app.models import Archivo, Pieza
 
-    inspector = inspect(db.bind)
+    inspector = inspect(engine)
     assert "piezas" in inspector.get_table_names()
     assert "archivos" in inspector.get_table_names()
 
