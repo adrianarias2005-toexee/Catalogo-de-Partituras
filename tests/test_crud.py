@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy import inspect
 
 from app import crud
-from app.schemas import ArchivoCreate, PiezaCreate
+from app.schemas import ArchivoCreate, PiezaCreate, PiezaRead
 
 
 def test_create_tables(db):
@@ -57,3 +57,13 @@ def test_delete_pieza_cascades(db):
     )
     crud.delete_pieza(db, p.id)
     assert crud.get_pieza(db, p.id) is None
+
+
+def test_pieza_read_serializa_instruments_como_lista(db):
+    """PiezaRead debe serializar instruments como lista[str], no como cadena JSON."""
+    pieza = crud.create_pieza(
+        db, PiezaCreate(title="Concierto", instruments=["Flauta", "Piano"])
+    )
+    read = PiezaRead.model_validate(pieza)
+    assert isinstance(read.instruments, list)
+    assert read.instruments == ["Flauta", "Piano"]

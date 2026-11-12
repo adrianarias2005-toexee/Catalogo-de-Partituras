@@ -1,8 +1,9 @@
 # Esquemas Pydantic para validación y serialización de datos
+import json
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +42,20 @@ class PiezaCreate(BaseModel):
     genre: Optional[str] = None
     difficulty: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator("instruments", mode="before")
+    @classmethod
+    def _deserializar_instruments(cls, v: object) -> list[str]:
+        """Acepta tanto lista[str] (desde API) como cadena JSON (desde ORM)."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (ValueError, TypeError):
+                pass
+            return []
+        return v if v is not None else []
 
 
 class PiezaRead(PiezaCreate):
