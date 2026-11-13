@@ -210,7 +210,7 @@ h1, h2, h3 { margin-top: 0; }
 .badge-loc.badge-papel    { background: var(--badge-papel); }
 
 .badge-difficulty { background: #94a3b8; color: #fff; }
-.badge-difficulty.badge-principiante { background: #22c55e; }
+.badge-difficulty.badge-fácil { background: #22c55e; }
 .badge-difficulty.badge-intermedio   { background: #f59e0b; }
 .badge-difficulty.badge-avanzado     { background: #ef4444; }
 

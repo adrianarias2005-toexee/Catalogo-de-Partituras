@@ -3,7 +3,8 @@ import json
 import unicodedata
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import Archivo, Pieza
 from app.schemas import ArchivoCreate, PiezaCreate
@@ -83,7 +84,7 @@ def list_piezas(
     if location_type:
         query = query.join(Pieza.archivos).filter(Archivo.location_type == location_type)
 
-    return query.offset(skip).limit(limit).all()
+    return query.options(selectinload(Pieza.archivos)).offset(skip).limit(limit).all()
 
 
 def search_piezas(
@@ -98,6 +99,7 @@ def search_piezas(
     term_normalizado = _normalizar(query)
     return (
         db.query(Pieza)
+        .options(selectinload(Pieza.archivos))
         .filter(Pieza.title_normalized.ilike(f"%{term_normalizado}%"))
         .offset(skip)
         .limit(limit)
@@ -131,6 +133,39 @@ def delete_pieza(db: Session, pieza_id: int) -> bool:
     db.delete(db_pieza)
     db.commit()
     return True
+
+
+def get_distinct_composers(db: Session) -> list[str]:
+    """Returns sorted list of non-null composers."""
+    rows = db.execute(
+        select(Pieza.composer)
+        .where(Pieza.composer.isnot(None))
+        .distinct()
+        .order_by(Pieza.composer)
+    ).scalars().all()
+    return [r for r in rows if r]
+
+
+def get_distinct_instruments(db: Session) -> list[str]:
+    """Returns sorted deduplicated list of instruments across all piezas."""
+    rows = db.execute(
+        select(Pieza.instruments)
+        .where(Pieza.instruments.isnot(None))
+        .where(Pieza.instruments != "[]")
+        .where(Pieza.instruments != "")
+    ).scalars().all()
+    seen: set[str] = set()
+    result: list[str] = []
+    for json_str in rows:
+        try:
+            instruments = json.loads(json_str)
+            for inst in instruments:
+                if inst and inst not in seen:
+                    seen.add(inst)
+                    result.append(inst)
+        except (json.JSONDecodeError, TypeError):
+            continue
+    return sorted(result)
 
 
 # ---------------------------------------------------------------------------

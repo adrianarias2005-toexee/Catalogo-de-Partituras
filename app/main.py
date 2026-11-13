@@ -63,19 +63,9 @@ def index(request: Request, db: Session = Depends(get_db)):
     """Página principal del catálogo con filtros."""
     piezas = crud.list_piezas(db, skip=0, limit=50)
 
-    # Obtener listas de valores únicos para los filtros
-    all_piezas = crud.list_piezas(db, skip=0, limit=10000)
-    composers = sorted({p.composer for p in all_piezas if p.composer})
-
-    import json
-    instruments_set: set[str] = set()
-    for p in all_piezas:
-        try:
-            insts = json.loads(p.instruments) if isinstance(p.instruments, str) else (p.instruments or [])
-            instruments_set.update(insts)
-        except Exception:
-            pass
-    instruments = sorted(instruments_set)
+    # Obtener listas de valores únicos para los filtros (consultas focalizadas)
+    composers = crud.get_distinct_composers(db)
+    instruments = crud.get_distinct_instruments(db)
 
     return templates.TemplateResponse(
         request,

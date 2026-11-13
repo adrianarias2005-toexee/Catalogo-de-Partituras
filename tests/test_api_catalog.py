@@ -89,12 +89,12 @@ def test_list_piezas_filtro_compositor(client):
 
 
 def test_list_piezas_filtro_dificultad(client):
-    client.post("/api/piezas", json={"title": "Fácil", "difficulty": "beginner"})
-    client.post("/api/piezas", json={"title": "Difícil", "difficulty": "advanced"})
-    r = client.get("/api/piezas?difficulty=beginner")
+    client.post("/api/piezas", json={"title": "Fácil", "difficulty": "fácil"})
+    client.post("/api/piezas", json={"title": "Difícil", "difficulty": "avanzado"})
+    r = client.get("/api/piezas?difficulty=f%C3%A1cil")
     assert r.status_code == 200
     datos = r.json()
-    assert all(d["difficulty"] == "beginner" for d in datos)
+    assert all(d["difficulty"] == "fácil" for d in datos)
 
 
 # ---------------------------------------------------------------------------
@@ -153,10 +153,10 @@ def test_patch_pieza_api(client):
 def test_patch_pieza_parcial(client):
     r = client.post("/api/piezas", json={"title": "Vals", "composer": "Autor"})
     pieza_id = r.json()["id"]
-    r2 = client.patch(f"/api/piezas/{pieza_id}", json={"difficulty": "intermediate"})
+    r2 = client.patch(f"/api/piezas/{pieza_id}", json={"difficulty": "intermedio"})
     assert r2.status_code == 200
     data = r2.json()
-    assert data["difficulty"] == "intermediate"
+    assert data["difficulty"] == "intermedio"
     assert data["composer"] == "Autor"  # campo no tocado se conserva
 
 

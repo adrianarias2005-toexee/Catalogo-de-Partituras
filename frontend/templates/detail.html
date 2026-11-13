@@ -65,7 +65,7 @@
         <label>Dificultad</label>
         <select name="difficulty" class="form-select">
           <option value="">— Sin especificar —</option>
-          <option value="principiante" {% if pieza.difficulty == 'principiante' %}selected{% endif %}>Principiante</option>
+          <option value="fácil" {% if pieza.difficulty == 'fácil' %}selected{% endif %}>Fácil</option>
           <option value="intermedio" {% if pieza.difficulty == 'intermedio' %}selected{% endif %}>Intermedio</option>
           <option value="avanzado" {% if pieza.difficulty == 'avanzado' %}selected{% endif %}>Avanzado</option>
         </select>
