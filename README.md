@@ -264,6 +264,130 @@ La app expone una API JSON completa en `/api/`:
 
 ---
 
+## Mejoras futuras (roadmap)
+
+Lo que sigue después de tener la app funcionando con la colección completa. Están ordenadas de mayor a menor prioridad práctica.
+
+---
+
+### 1. Estado y seguimiento por partitura
+
+**Qué es:** Agregar un campo de "estado" a cada partitura para saber en qué punto estás con ella.
+
+**Estados posibles:**
+- `pendiente` — la tienes pero aún no la has trabajado
+- `en_progreso` — la estás estudiando o ensayando actualmente
+- `dominada` — ya la tienes lista
+- `archivada` — ya no la usas activamente
+
+**Cómo se implementa:**
+- Agregar columna `estado` a la tabla `piezas` en `app/models.py`
+- Agregar filtro por estado en la barra lateral de `index.html`
+- Agregar selector de estado en el formulario de detalle `detail.html`
+- Agregar herramienta al agente: "¿Qué estoy estudiando actualmente?"
+
+**Archivos a modificar:** `app/models.py`, `app/schemas.py`, `app/crud.py`, `frontend/templates/index.html`, `frontend/templates/detail.html`, `app/agent.py`
+
+---
+
+### 2. Historial de chat persistente
+
+**Qué es:** Ahora el chat olvida todo al cerrar o recargar el navegador. Con esta mejora el historial se guarda en la base de datos y puedes retomar conversaciones anteriores.
+
+**Cómo se implementa:**
+- Crear tabla `conversaciones` en la BD con columnas: `id`, `created_at`, `messages` (JSON)
+- Guardar cada conversación al cerrar el panel de chat
+- Mostrar las últimas N conversaciones en un menú desplegable dentro del panel
+- El agente recibe el historial guardado como contexto inicial
+
+**Archivos a modificar:** `app/models.py`, `app/routers/chat.py`, `frontend/static/chat.js`, `frontend/templates/base.html`
+
+---
+
+### 3. Exportar el catálogo a CSV
+
+**Qué es:** Un botón para descargar todo el catálogo (o los resultados de un filtro) como archivo CSV, útil para respaldos o para abrir en Excel/Numbers.
+
+**Cómo se implementa:**
+- Agregar endpoint `GET /api/piezas/exportar.csv` que devuelva un `StreamingResponse` con el CSV generado dinámicamente
+- Incluir columnas: título, compositor, instrumentos, género, dificultad, notas, ubicaciones, rutas
+- Agregar botón "Exportar CSV" en la barra superior de `index.html`
+- Opcionalmente: exportar solo los resultados del filtro activo (pasar los mismos parámetros de filtro al endpoint)
+
+**Archivos a modificar:** `app/routers/catalog.py`, `frontend/templates/index.html`
+
+---
+
+### 4. Metadatos extendidos desde MuseScore
+
+**Qué es:** El CSV de inventario ya tiene datos ricos (tempo, número de compases, tonalidad, número de instrumentos) que actualmente no se muestran en la app. Esta mejora los muestra en la pantalla de detalle.
+
+**Columnas del CSV disponibles:** `tempo_bpm`, `n_compases`, `tonalidad`, `n_instrumentos`, `tiene_acordes`, `servicio`
+
+**Cómo se implementa:**
+- Agregar columnas opcionales a la tabla `piezas`: `tempo_bpm`, `n_compases`, `tonalidad`
+- Actualizar `csv_import.py` para leer y guardar esos campos
+- Mostrarlos como datos secundarios en `detail.html` (debajo de los metadatos principales)
+- Agregar herramientas al agente: "¿Qué tengo con más de 100 compases?" o "¿Qué está en Do mayor?"
+
+**Archivos a modificar:** `app/models.py`, `app/schemas.py`, `app/csv_import.py`, `frontend/templates/detail.html`, `app/agent.py`
+
+---
+
+### 5. Autocompletado en búsqueda y filtros
+
+**Qué es:** Al escribir en la barra de búsqueda o en los campos de compositor/instrumento, que aparezcan sugerencias basadas en lo que ya está en el catálogo.
+
+**Cómo se implementa:**
+- Agregar endpoint `GET /api/piezas/sugerencias?q=&campo=titulo` que devuelva hasta 10 coincidencias parciales
+- Usar el elemento HTML nativo `<datalist>` conectado al input de búsqueda (no requiere JavaScript extra)
+- Para compositores e instrumentos, los dropdowns actuales ya se pueblan desde la BD — se pueden convertir en inputs con autocompletado
+
+**Archivos a modificar:** `app/routers/catalog.py`, `frontend/templates/index.html`, `frontend/templates/add.html`
+
+---
+
+### 6. Modo oscuro
+
+**Qué es:** Un interruptor para cambiar entre tema claro y oscuro, guardando la preferencia del usuario.
+
+**Cómo se implementa:**
+- Agregar variables CSS para los colores en `style.css` bajo `[data-theme="dark"]`
+- Agregar botón de toggle en el header de `base.html`
+- Guardar la preferencia en `localStorage` del navegador con unas pocas líneas de JavaScript
+- La preferencia se aplica automáticamente al cargar la página
+
+**Archivos a modificar:** `frontend/static/style.css`, `frontend/templates/base.html`
+
+---
+
+### 7. Visor de PDF integrado
+
+**Qué es:** Al hacer clic en una partitura que está guardada en el Mac o iCloud, abrirla directamente dentro de la app sin salir al navegador ni al Finder.
+
+**Cómo se implementa:**
+- Agregar endpoint `GET /api/archivos/{id}/ver` que sirva el archivo con el `Content-Type` correcto
+- Usar el elemento HTML `<iframe>` o `<embed>` en `detail.html` para mostrar el PDF
+- Aplica solo a archivos con `location_type="mac"` o `location_type="icloud"` y `format="pdf"`
+- Para archivos MuseScore (`.mscz`), mostrar un enlace a "Abrir en MuseScore" en lugar del visor
+
+**Archivos a modificar:** `app/routers/catalog.py`, `frontend/templates/detail.html`
+
+---
+
+### 8. Notificaciones cuando el agente no encuentra algo
+
+**Qué es:** Si preguntas al chat "¿Tengo la Sinfonía nº 5 de Beethoven?" y no está en el catálogo, que el agente te ofrezca agregarla al instante desde la misma conversación.
+
+**Cómo se implementa:**
+- Agregar una herramienta al agente: `crear_pieza(titulo, compositor, notas)` que llame a `crud.create_pieza`
+- El agente puede proponer crear la entrada y esperar confirmación del usuario antes de ejecutar
+- Mostrar en el chat un botón "Sí, agrégala" que confirme la operación
+
+**Archivos a modificar:** `app/agent.py`, `frontend/static/chat.js`
+
+---
+
 ## Licencia
 
 Proyecto personal — uso libre.
