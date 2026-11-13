@@ -119,6 +119,18 @@ def agregar_pieza(request: Request):
     return templates.TemplateResponse(request, "add.html")
 
 
+@app.get("/escanear", response_class=HTMLResponse)
+def escanear(request: Request):
+    """Página de escaneo y revisión de carpetas."""
+    from app.config import settings
+
+    return templates.TemplateResponse(
+        request,
+        "scan_review.html",
+        {"scan_folders": settings.scan_folders},
+    )
+
+
 @app.get("/partials/piezas", response_class=HTMLResponse)
 def partial_piezas(
     request: Request,
