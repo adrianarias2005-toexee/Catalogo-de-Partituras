@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.database import Base, engine
 from app.routers.catalog import router as catalog_router
+from app.routers.scanner import scanner_router
 
 # ---------------------------------------------------------------------------
 # Creación de la aplicación
@@ -24,6 +25,7 @@ Base.metadata.create_all(bind=engine)
 # ---------------------------------------------------------------------------
 
 app.include_router(catalog_router)
+app.include_router(scanner_router)
 
 # ---------------------------------------------------------------------------
 # Punto de entrada para uvicorn
