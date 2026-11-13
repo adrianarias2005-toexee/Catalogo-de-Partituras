@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Agregar Pieza — Partituras{% endblock %}
+
+{% block content %}
+<div class="add-layout">
+
+  <div class="detail-header">
+    <a href="/" class="back-link">← Volver al catálogo</a>
+  </div>
+
+  <section class="detail-card">
+    <h1>Agregar nueva pieza</h1>
+
+    <form id="add-pieza-form" onsubmit="crearPieza(event)">
+
+      <fieldset class="form-fieldset">
+        <legend>Datos de la pieza</legend>
+
+        <div class="form-group">
+          <label for="title">Título *</label>
+          <input id="title" type="text" name="title" required class="form-input" placeholder="Ej: Sonata en Do Mayor">
+        </div>
+
+        <div class="form-group">
+          <label for="composer">Compositor</label>
+          <input id="composer" type="text" name="composer" class="form-input" placeholder="Ej: Bach, J.S.">
+        </div>
+
+        <div class="form-group">
+          <label for="instruments">Instrumentos <small>(separados por coma)</small></label>
+          <input id="instruments" type="text" name="instruments" class="form-input" placeholder="Ej: piano, violín">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="genre">Género</label>
+            <input id="genre" type="text" name="genre" class="form-input" placeholder="Ej: Barroco, Clásico">
+          </div>
+
+          <div class="form-group">
+            <label for="difficulty">Dificultad</label>
+            <select id="difficulty" name="difficulty" class="form-select">
+              <option value="">— Sin especificar —</option>
+              <option value="principiante">Principiante</option>
+              <option value="intermedio">Intermedio</option>
+              <option value="avanzado">Avanzado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notas</label>
+          <textarea id="notes" name="notes" class="form-textarea" rows="3" placeholder="Observaciones, versiones, estado..."></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-fieldset">
+        <legend>Archivo (opcional)</legend>
+        <p class="form-hint">Puedes agregar más archivos desde la página de detalle.</p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="archivo-format">Formato</label>
+            <select id="archivo-format" name="archivo_format" class="form-select">
+              <option value="">— Sin archivo —</option>
+              <option value="pdf">PDF</option>
+              <option value="mscz">MSCZ</option>
+              <option value="musicxml">MusicXML</option>
+              <option value="mp3">MP3</option>
+              <option value="midi">MIDI</option>
+              <option value="imagen">Imagen</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="archivo-location">Ubicación</label>
+            <select id="archivo-location" name="archivo_location_type" class="form-select">
+              <option value="">— Ubicación —</option>
+              <option value="mac">Mac</option>
+              <option value="icloud">iCloud</option>
+              <option value="ipad">iPad</option>
+              <option value="celular">Celular</option>
+              <option value="papel">Papel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="archivo-path">Ruta</label>
+          <input id="archivo-path" type="text" name="archivo_path" class="form-input" placeholder="/ruta/al/archivo.pdf">
+        </div>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Crear pieza</button>
+        <a href="/" class="btn-secondary">Cancelar</a>
+      </div>
+
+      <div id="add-error" class="error-msg" style="display:none;"></div>
+    </form>
+  </section>
+
+</div>
+
+<script>
+  async function crearPieza(event) {
+    event.preventDefault();
+    const form = document.getElementById('add-pieza-form');
+    const raw = Object.fromEntries(new FormData(form));
+
+    // Construir payload de pieza
+    const pieza = {title: raw.title};
+    if (raw.composer) pieza.composer = raw.composer;
+    if (raw.instruments) {
+      pieza.instruments = raw.instruments.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    if (raw.genre) pieza.genre = raw.genre;
+    if (raw.difficulty) pieza.difficulty = raw.difficulty;
+    if (raw.notes) pieza.notes = raw.notes;
+
+    const errDiv = document.getElementById('add-error');
+    errDiv.style.display = 'none';
+
+    // 1. Crear pieza
+    let piezaRes, piezaData;
+    try {
+      piezaRes = await fetch('/api/piezas', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(pieza)
+      });
+      piezaData = await piezaRes.json();
+    } catch(e) {
+      errDiv.textContent = 'Error de red al crear la pieza.';
+      errDiv.style.display = 'block';
+      return;
+    }
+
+    if (!piezaRes.ok) {
+      errDiv.textContent = `Error: ${JSON.stringify(piezaData.detail || piezaData)}`;
+      errDiv.style.display = 'block';
+      return;
+    }
+
+    const piezaId = piezaData.id;
+
+    // 2. Agregar archivo si se especificó
+    if (raw.archivo_format && raw.archivo_location_type) {
+      const archivo = {
+        format: raw.archivo_format,
+        location_type: raw.archivo_location_type,
+      };
+      if (raw.archivo_path) archivo.path = raw.archivo_path;
+
+      try {
+        const archRes = await fetch(`/api/piezas/${piezaId}/archivos`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(archivo)
+        });
+        if (!archRes.ok) {
+          // La pieza se creó pero el archivo falló — redirigir igual
+          console.warn('El archivo no se pudo agregar:', await archRes.json());
+        }
+      } catch(e) {
+        console.warn('Error de red al agregar archivo:', e);
+      }
+    }
+
+    // 3. Redirigir a la página de detalle
+    window.location.href = `/piezas/${piezaId}`;
+  }
+</script>
+{% endblock %}

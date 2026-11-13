@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}{{ pieza.title }} — Partituras{% endblock %}
+
+{% block content %}
+<div class="detail-layout">
+
+  <div class="detail-header">
+    <a href="/" class="back-link">← Volver al catálogo</a>
+    <div class="detail-actions">
+      <button class="btn-secondary" onclick="toggleEdit()">Editar</button>
+      <button class="btn-danger" onclick="confirmarEliminar({{ pieza.id }})">Eliminar</button>
+    </div>
+  </div>
+
+  <!-- Vista de metadatos -->
+  <section id="view-mode" class="detail-card">
+    <h1 class="detail-title">{{ pieza.title }}</h1>
+    <dl class="meta-grid">
+      <dt>Compositor</dt>
+      <dd>{{ pieza.composer or '—' }}</dd>
+
+      <dt>Instrumentos</dt>
+      <dd>{{ pieza.instruments | join(', ') if pieza.instruments else '—' }}</dd>
+
+      <dt>Género</dt>
+      <dd>{{ pieza.genre or '—' }}</dd>
+
+      <dt>Dificultad</dt>
+      <dd>
+        {% if pieza.difficulty %}
+          <span class="badge badge-difficulty badge-{{ pieza.difficulty }}">{{ pieza.difficulty }}</span>
+        {% else %}—{% endif %}
+      </dd>
+
+      <dt>Notas</dt>
+      <dd>{{ pieza.notes or '—' }}</dd>
+
+      <dt>Creada</dt>
+      <dd>{{ pieza.created_at.strftime('%d/%m/%Y') }}</dd>
+    </dl>
+  </section>
+
+  <!-- Formulario de edición (oculto por defecto) -->
+  <section id="edit-mode" class="detail-card" style="display:none;">
+    <h2>Editar pieza</h2>
+    <form id="edit-form" onsubmit="guardarEdicion(event, {{ pieza.id }})">
+      <div class="form-group">
+        <label>Título *</label>
+        <input type="text" name="title" value="{{ pieza.title }}" required class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Compositor</label>
+        <input type="text" name="composer" value="{{ pieza.composer or '' }}" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Instrumentos <small>(separados por coma)</small></label>
+        <input type="text" name="instruments" value="{{ pieza.instruments | join(', ') }}" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Género</label>
+        <input type="text" name="genre" value="{{ pieza.genre or '' }}" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Dificultad</label>
+        <select name="difficulty" class="form-select">
+          <option value="">— Sin especificar —</option>
+          <option value="principiante" {% if pieza.difficulty == 'principiante' %}selected{% endif %}>Principiante</option>
+          <option value="intermedio" {% if pieza.difficulty == 'intermedio' %}selected{% endif %}>Intermedio</option>
+          <option value="avanzado" {% if pieza.difficulty == 'avanzado' %}selected{% endif %}>Avanzado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notas</label>
+        <textarea name="notes" class="form-textarea" rows="3">{{ pieza.notes or '' }}</textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Guardar cambios</button>
+        <button type="button" class="btn-secondary" onclick="toggleEdit()">Cancelar</button>
+      </div>
+    </form>
+    <div id="edit-error" class="error-msg" style="display:none;"></div>
+  </section>
+
+  <!-- Archivos -->
+  <section class="detail-card">
+    <h2>Archivos <span class="badge-count">{{ pieza.archivos | length }}</span></h2>
+
+    {% if pieza.archivos %}
+    <table class="archivo-table">
+      <thead>
+        <tr>
+          <th>Formato</th>
+          <th>Ubicación</th>
+          <th>Ruta</th>
+          <th>Modificado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="archivos-list">
+        {% for archivo in pieza.archivos %}
+        <tr id="archivo-row-{{ archivo.id }}">
+          <td><span class="badge badge-format">{{ archivo.format }}</span></td>
+          <td><span class="badge badge-loc badge-{{ archivo.location_type }}">{{ archivo.location_type }}</span></td>
+          <td class="path-cell">{{ archivo.path or '—' }}</td>
+          <td>{{ archivo.last_modified.strftime('%d/%m/%Y') if archivo.last_modified else '—' }}</td>
+          <td>
+            <button
+              class="btn-danger btn-sm"
+              onclick="eliminarArchivo({{ archivo.id }})"
+            >Eliminar</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty-hint">Esta pieza no tiene archivos registrados.</p>
+    {% endif %}
+
+    <!-- Formulario agregar archivo -->
+    <details class="add-archivo-panel">
+      <summary class="btn-secondary" style="cursor:pointer;">+ Agregar archivo</summary>
+      <form id="add-archivo-form" onsubmit="agregarArchivo(event, {{ pieza.id }})" class="add-archivo-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Formato *</label>
+            <select name="format" required class="form-select">
+              <option value="">— Formato —</option>
+              <option value="pdf">PDF</option>
+              <option value="mscz">MSCZ</option>
+              <option value="musicxml">MusicXML</option>
+              <option value="mp3">MP3</option>
+              <option value="midi">MIDI</option>
+              <option value="imagen">Imagen</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ubicación *</label>
+            <select name="location_type" required class="form-select">
+              <option value="">— Ubicación —</option>
+              <option value="mac">Mac</option>
+              <option value="icloud">iCloud</option>
+              <option value="ipad">iPad</option>
+              <option value="celular">Celular</option>
+              <option value="papel">Papel</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Ruta (opcional)</label>
+          <input type="text" name="path" placeholder="/ruta/al/archivo.pdf" class="form-input">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Agregar</button>
+        </div>
+        <div id="add-archivo-error" class="error-msg" style="display:none;"></div>
+      </form>
+    </details>
+  </section>
+
+</div>
+
+<script>
+  function toggleEdit() {
+    const view = document.getElementById('view-mode');
+    const edit = document.getElementById('edit-mode');
+    const isEditing = edit.style.display !== 'none';
+    view.style.display = isEditing ? '' : 'none';
+    edit.style.display = isEditing ? 'none' : '';
+  }
+
+  async function guardarEdicion(event, piezaId) {
+    event.preventDefault();
+    const form = document.getElementById('edit-form');
+    const data = Object.fromEntries(new FormData(form));
+
+    // Convertir instrumentos de cadena a lista
+    if (data.instruments) {
+      data.instruments = data.instruments.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      data.instruments = [];
+    }
+    // Limpiar campos vacíos opcionales
+    ['composer', 'genre', 'difficulty', 'notes'].forEach(k => {
+      if (data[k] === '') data[k] = null;
+    });
+
+    const errDiv = document.getElementById('edit-error');
+    errDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(`/api/piezas/${piezaId}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        errDiv.textContent = `Error: ${JSON.stringify(err.detail || err)}`;
+        errDiv.style.display = 'block';
+      }
+    } catch(e) {
+      errDiv.textContent = 'Error de red al guardar.';
+      errDiv.style.display = 'block';
+    }
+  }
+
+  async function eliminarArchivo(archivoId) {
+    if (!confirm('¿Eliminar este archivo del catálogo?')) return;
+    try {
+      const res = await fetch(`/api/archivos/${archivoId}`, {method: 'DELETE'});
+      if (res.ok || res.status === 204) {
+        const row = document.getElementById(`archivo-row-${archivoId}`);
+        if (row) row.remove();
+      } else {
+        alert('Error al eliminar el archivo.');
+      }
+    } catch(e) {
+      alert('Error de red.');
+    }
+  }
+
+  async function agregarArchivo(event, piezaId) {
+    event.preventDefault();
+    const form = document.getElementById('add-archivo-form');
+    const data = Object.fromEntries(new FormData(form));
+    if (!data.path) delete data.path;
+
+    const errDiv = document.getElementById('add-archivo-error');
+    errDiv.style.display = 'none';
+
+    try {
+      const res = await fetch(`/api/piezas/${piezaId}/archivos`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      if (res.ok || res.status === 201) {
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        errDiv.textContent = `Error: ${JSON.stringify(err.detail || err)}`;
+        errDiv.style.display = 'block';
+      }
+    } catch(e) {
+      errDiv.textContent = 'Error de red al agregar.';
+      errDiv.style.display = 'block';
+    }
+  }
+
+  async function confirmarEliminar(piezaId) {
+    if (!confirm('¿Eliminar esta pieza permanentemente? Esta acción no se puede deshacer.')) return;
+    try {
+      const res = await fetch(`/api/piezas/${piezaId}`, {method: 'DELETE'});
+      if (res.ok || res.status === 204) {
+        window.location.href = '/';
+      } else {
+        alert('Error al eliminar la pieza.');
+      }
+    } catch(e) {
+      alert('Error de red.');
+    }
+  }
+</script>
+{% endblock %}

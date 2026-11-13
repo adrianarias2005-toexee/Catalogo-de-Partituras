@@ -1,0 +1,79 @@
+{% if piezas %}
+<table class="piece-table">
+  <thead>
+    <tr>
+      <th>Título</th>
+      <th>Compositor</th>
+      <th>Instrumentos</th>
+      <th>Dificultad</th>
+      <th>Ubicaciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for pieza in piezas %}
+    <tr class="piece-row">
+      <td>
+        <a href="/piezas/{{ pieza.id }}" class="piece-title-link">{{ pieza.title }}</a>
+      </td>
+      <td>{{ pieza.composer or '—' }}</td>
+      <td>
+        {% if pieza.instruments %}
+          <span title="{{ pieza.instruments | join(', ') }}">
+            {{ pieza.instruments[:2] | join(', ') }}{% if pieza.instruments | length > 2 %}…{% endif %}
+          </span>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+      <td>
+        {% if pieza.difficulty %}
+          <span class="badge badge-difficulty badge-{{ pieza.difficulty }}">{{ pieza.difficulty }}</span>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+      <td class="locations-cell">
+        {% set location_types = pieza.archivos | map(attribute='location_type') | unique | list %}
+        {% for loc in location_types %}
+          <span class="badge badge-loc badge-{{ loc }}">{{ loc }}</span>
+        {% endfor %}
+        {% if not location_types %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Paginación -->
+<div class="pagination">
+  {% if skip > 0 %}
+    <a
+      href="#"
+      class="btn-secondary"
+      hx-get="/partials/piezas?skip={{ [skip - 50, 0] | max }}&limit={{ limit }}{% if q %}&q={{ q }}{% endif %}{% if composer %}&composer={{ composer }}{% endif %}{% if instrument %}&instrument={{ instrument }}{% endif %}{% if difficulty %}&difficulty={{ difficulty }}{% endif %}{% if location_type %}&location_type={{ location_type }}{% endif %}"
+      hx-target="#piece-list"
+      hx-push-url="false"
+    >← Anterior</a>
+  {% endif %}
+
+  <span class="pagination-info">
+    Mostrando {{ skip + 1 }}–{{ skip + piezas | length }}
+  </span>
+
+  {% if piezas | length == limit %}
+    <a
+      href="#"
+      class="btn-secondary"
+      hx-get="/partials/piezas?skip={{ skip + limit }}&limit={{ limit }}{% if q %}&q={{ q }}{% endif %}{% if composer %}&composer={{ composer }}{% endif %}{% if instrument %}&instrument={{ instrument }}{% endif %}{% if difficulty %}&difficulty={{ difficulty }}{% endif %}{% if location_type %}&location_type={{ location_type }}{% endif %}"
+      hx-target="#piece-list"
+      hx-push-url="false"
+    >Siguiente →</a>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <p>No se encontraron piezas con los filtros seleccionados.</p>
+  <a href="/" class="btn-secondary">Limpiar filtros</a>
+</div>
+{% endif %}

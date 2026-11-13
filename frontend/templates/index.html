@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogo de Partituras{% endblock %}
+
+{% block content %}
+<div class="catalog-layout">
+
+  <!-- Barra lateral de filtros -->
+  <aside class="filter-sidebar">
+    <h2 class="sidebar-title">Filtros</h2>
+
+    <div class="filter-group">
+      <label for="search-input">Buscar</label>
+      <input
+        id="search-input"
+        type="text"
+        name="q"
+        placeholder="Título o compositor..."
+        class="filter-input"
+        hx-get="/partials/piezas"
+        hx-target="#piece-list"
+        hx-trigger="keyup changed delay:300ms"
+        hx-include="#filter-compositor,#filter-instrumento,#filter-dificultad,#filter-ubicacion"
+      >
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-compositor">Compositor</label>
+      <select
+        id="filter-compositor"
+        name="composer"
+        class="filter-select"
+        hx-get="/partials/piezas"
+        hx-target="#piece-list"
+        hx-trigger="change"
+        hx-include="#search-input,#filter-instrumento,#filter-dificultad,#filter-ubicacion"
+      >
+        <option value="">Todos</option>
+        {% for c in composers %}
+          <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-instrumento">Instrumento</label>
+      <select
+        id="filter-instrumento"
+        name="instrument"
+        class="filter-select"
+        hx-get="/partials/piezas"
+        hx-target="#piece-list"
+        hx-trigger="change"
+        hx-include="#search-input,#filter-compositor,#filter-dificultad,#filter-ubicacion"
+      >
+        <option value="">Todos</option>
+        {% for i in instruments %}
+          <option value="{{ i }}">{{ i }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-dificultad">Dificultad</label>
+      <select
+        id="filter-dificultad"
+        name="difficulty"
+        class="filter-select"
+        hx-get="/partials/piezas"
+        hx-target="#piece-list"
+        hx-trigger="change"
+        hx-include="#search-input,#filter-compositor,#filter-instrumento,#filter-ubicacion"
+      >
+        <option value="">Todas</option>
+        <option value="principiante">Principiante</option>
+        <option value="intermedio">Intermedio</option>
+        <option value="avanzado">Avanzado</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="filter-ubicacion">Ubicación</label>
+      <select
+        id="filter-ubicacion"
+        name="location_type"
+        class="filter-select"
+        hx-get="/partials/piezas"
+        hx-target="#piece-list"
+        hx-trigger="change"
+        hx-include="#search-input,#filter-compositor,#filter-instrumento,#filter-dificultad"
+      >
+        <option value="">Todas</option>
+        <option value="mac">Mac</option>
+        <option value="icloud">iCloud</option>
+        <option value="ipad">iPad</option>
+        <option value="celular">Celular</option>
+        <option value="papel">Papel</option>
+      </select>
+    </div>
+
+    <button
+      class="btn-secondary"
+      onclick="resetFilters()"
+      style="margin-top:1rem;width:100%;"
+    >
+      Limpiar filtros
+    </button>
+  </aside>
+
+  <!-- Área principal -->
+  <section class="catalog-main">
+    <div class="catalog-header">
+      <h1>Catálogo</h1>
+      <a href="/agregar" class="btn-primary">+ Agregar pieza</a>
+    </div>
+
+    <div id="piece-list">
+      {% include "partials/piece_list.html" %}
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function resetFilters() {
+    document.getElementById('search-input').value = '';
+    document.getElementById('filter-compositor').value = '';
+    document.getElementById('filter-instrumento').value = '';
+    document.getElementById('filter-dificultad').value = '';
+    document.getElementById('filter-ubicacion').value = '';
+    htmx.ajax('GET', '/partials/piezas', {target: '#piece-list'});
+  }
+</script>
+{% endblock %}
