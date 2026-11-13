@@ -1,0 +1,16 @@
+{# Burbuja de mensaje individual del chat.
+   Variables:
+     role    — 'user' | 'assistant'
+     content — texto del mensaje (soporta markdown básico en mensajes del asistente)
+
+   Nota: este parcial se usa como referencia; en la práctica los mensajes
+   se insertan dinámicamente en el DOM desde chat.js.
+#}
+<div class="chat-msg {% if role == 'user' %}chat-user{% else %}chat-bot{% endif %}">
+  {% if role == 'user' %}
+    {{ content | e }}
+  {% else %}
+    {# Markdown básico: **texto** → <strong>, saltos de línea → <br> #}
+    {{ content | e | replace('**', '<strong>', 1) | replace('**', '</strong>', 1) | replace('\n', '<br>') }}
+  {% endif %}
+</div>

@@ -25,13 +25,13 @@
 
   <div id="chat-panel" class="chat-panel" style="display:none;">
     <div class="chat-panel-header">
-      <span>Asistente</span>
-      <button onclick="toggleChat()" class="btn-icon">✕</button>
+      <span>Asistente de Partituras</span>
+      <button onclick="toggleChat()" class="btn-icon" title="Cerrar">✕</button>
     </div>
     <div id="chat-messages" class="chat-messages"></div>
     <div class="chat-input-row">
-      <input id="chat-input" type="text" placeholder="Escribe una pregunta..." class="chat-input">
-      <button onclick="sendChat()" class="btn-primary">Enviar</button>
+      <input id="chat-input" type="text" placeholder="Escribe una pregunta..." class="chat-input" autocomplete="off">
+      <button id="chat-send-btn" onclick="sendChat()" class="btn-primary btn-sm">Enviar</button>
     </div>
   </div>
 
@@ -39,46 +39,6 @@
 
   {% block chat %}{% endblock %}
 
-  <script>
-    function toggleChat() {
-      const panel = document.getElementById('chat-panel');
-      panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
-      if (panel.style.display === 'flex') {
-        document.getElementById('chat-input').focus();
-      }
-    }
-
-    async function sendChat() {
-      const input = document.getElementById('chat-input');
-      const messages = document.getElementById('chat-messages');
-      const text = input.value.trim();
-      if (!text) return;
-
-      messages.innerHTML += `<div class="chat-msg chat-user">${escapeHtml(text)}</div>`;
-      input.value = '';
-      messages.scrollTop = messages.scrollHeight;
-
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({message: text})
-        });
-        const data = await res.json();
-        messages.innerHTML += `<div class="chat-msg chat-bot">${escapeHtml(data.reply || data.response || JSON.stringify(data))}</div>`;
-      } catch(e) {
-        messages.innerHTML += `<div class="chat-msg chat-bot chat-error">Error al conectar con el asistente.</div>`;
-      }
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.target.id === 'chat-input' && e.key === 'Enter') sendChat();
-    });
-
-    function escapeHtml(str) {
-      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-  </script>
+  <script src="/static/chat.js"></script>
 </body>
 </html>
