@@ -111,8 +111,12 @@
   <section class="catalog-main">
     <div class="catalog-header">
       <h1>Catálogo</h1>
-      <a href="/agregar" class="btn-primary">+ Agregar pieza</a>
+      <div style="display:flex;gap:.5rem;align-items:center;">
+        <button id="btn-buscar-nuevas" class="btn-secondary" onclick="buscarNuevas()">Buscar nuevas</button>
+        <a href="/agregar" class="btn-primary">+ Agregar pieza</a>
+      </div>
     </div>
+    <div id="nuevas-banner" style="display:none;margin-bottom:1rem;"></div>
 
     <div id="piece-list">
       {% include "partials/piece_list.html" %}
@@ -129,6 +133,34 @@
     document.getElementById('filter-dificultad').value = '';
     document.getElementById('filter-ubicacion').value = '';
     htmx.ajax('GET', '/partials/piezas', {target: '#piece-list'});
+  }
+
+  async function buscarNuevas() {
+    const btn = document.getElementById('btn-buscar-nuevas');
+    const banner = document.getElementById('nuevas-banner');
+    btn.disabled = true;
+    btn.textContent = 'Escaneando…';
+    banner.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/scan/nuevas');
+      const data = await res.json();
+      if (data.count === 0) {
+        banner.innerHTML = '<div style="padding:.6rem 1rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;color:#166534;font-size:.9rem;">Todo al día — no se encontraron partituras nuevas.</div>';
+      } else {
+        banner.innerHTML = `<div style="padding:.6rem 1rem;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;color:#92400e;font-size:.9rem;">
+          Se encontraron <strong>${data.count}</strong> partitura${data.count !== 1 ? 's' : ''} nueva${data.count !== 1 ? 's' : ''}.
+          <a href="/escanear" style="margin-left:.75rem;font-weight:600;color:#b45309;">Revisar e importar →</a>
+        </div>`;
+      }
+      banner.style.display = 'block';
+    } catch (e) {
+      banner.innerHTML = '<div style="padding:.6rem 1rem;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;color:#991b1b;font-size:.9rem;">Error al escanear. Verifica que la app esté corriendo.</div>';
+      banner.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Buscar nuevas';
+    }
   }
 </script>
 {% endblock %}

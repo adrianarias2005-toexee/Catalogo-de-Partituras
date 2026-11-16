@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app import crud
+from app.config import settings
 from app.database import get_db
 from app.scanner import ScanCandidate, scan_folder
 from app.schemas import ArchivoCreate, PiezaCreate
@@ -41,6 +42,22 @@ class ConfirmRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+@scanner_router.get("/scan/nuevas")
+def escaneo_rapido(db: Session = Depends(get_db)) -> dict:
+    """Escanea las carpetas configuradas y devuelve solo candidatos nuevos (no importados aún)."""
+    candidatos: list[ScanCandidate] = []
+    for carpeta in settings.scan_folders:
+        ruta = os.path.expanduser(carpeta)
+        candidatos.extend(scan_folder(ruta))
+
+    nuevos = [c for c in candidatos if crud.get_archivo_by_path(db, c.path) is None]
+
+    return {
+        "count": len(nuevos),
+        "candidates": [dataclasses.asdict(c) for c in nuevos],
+    }
+
 
 @scanner_router.post("/scan")
 def iniciar_escaneo(
